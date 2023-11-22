@@ -11,54 +11,78 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
   constructor(props: PcotGraphProps) {
     super(props);
 
-    this.levelLayer = [];
-
     this.state = {};
   }
 
-  private levelLayer: Array<number>;
-
   public render() {
     const data = this.props.tree;
+    const blueprint = this.createBlueprint(data);
+    console.log(blueprint);
 
     return (
       <svg height={500} width={500}>
-        {this.drawNode(data)}
+        {this.drawNode(blueprint)}
       </svg>
     );
   }
 
-  public drawNode(data: RawNode, parent?: PositionNode) {
+  private createBlueprint(data: RawNode, parent?: PositionNode) {
     if (!parent) {
-      parent = { key: null, x: 10, y: 0, level: 0, childCount: 0 };
+      parent = {
+        key: "",
+        name: "",
+        time: "",
+        childTime: "",
+        x: 10,
+        y: 0,
+        level: 0,
+        childCount: 0,
+      };
     }
-    const x = parent.x + 100 * parent.childCount;
-    const y = parent.y + 100 * (parent.childCount === 0 ? 1 : 0.5); // 서열 판별
-    const level = parent.level + 1;
+    const isFirst: Boolean = parent.childCount === 0;
+    const x: number = parent.x + 100 * parent.childCount;
+    const y: number = parent.y + 100 * (isFirst ? 1 : 0.5); // 서열 판별
+    const level: number = parent.level + 1;
 
     let childCount = 0;
 
-    let node = {
+    let node: PositionNode = {
       key: data.key,
+      name: data.name,
+      comment: data.comment,
+      time: data.time,
+      childTime: data.childTime,
       x: x,
       y: y,
       level: level,
       childCount: childCount,
     };
 
-    return (
-      <g>
-        <NodeTree node={data} x={x} y={y}>
-          {data.child &&
-            data.child?.map((children) => {
-              const result = this.drawNode(children, node);
+    const arr: Array<PositionNode> =
+      data.child && Array.isArray(data.child)
+        ? data.child
+            .sort(
+              (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
+            )
+            .map((children) => {
+              const result: Array<PositionNode> = this.createBlueprint(
+                children,
+                node
+              );
               node.childCount++;
 
               return result;
-            })}
-        </NodeTree>
-        {parent.level !== 0 ? <Bridge parent={parent} child={node} /> : null}
-      </g>
-    );
+            })
+            .flat()
+        : [];
+
+    console.log(arr);
+    return arr.concat(node);
+  }
+
+  private drawNode(data: Array<PositionNode>) {
+    return data.map((node) => {
+      return <NodeTree node={node} />;
+    });
   }
 }

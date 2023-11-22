@@ -1,18 +1,14 @@
 import * as React from "react";
 
 export interface NodeProps {
-  node: Node;
-  x: number;
-  y: number;
-  children?: Array<React.ReactNode>;
+  node: PositionNode;
 }
 
 export interface RawNode extends Node {
   child?: Array<RawNode>;
 }
 
-export interface PositionNode {
-  key: string | null;
+export interface PositionNode extends Node {
   x: number;
   y: number;
   level: number;
@@ -24,12 +20,13 @@ export interface Node {
   key: string;
   comment?: string;
   time: string;
+  childTime: string;
 }
 
 export class NodeTree extends React.Component<NodeProps> {
   public render() {
-    const { node, x, y, children } = this.props;
-    const name = node.name;
+    const { node } = this.props;
+    const { key, name, comment, time, x, y, level } = node;
     return (
       <g
         key={node.key}
@@ -41,7 +38,6 @@ export class NodeTree extends React.Component<NodeProps> {
         <text x={x + 15} y={y + 3} textAnchor="left" fill="black">
           {name}
         </text>
-        {children && <g>{children}</g>}
       </g>
     );
   }
