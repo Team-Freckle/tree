@@ -4,14 +4,9 @@ export interface NodeProps {
   node: PositionNode;
 }
 
-export interface RawNode extends Node {
-  child?: Array<RawNode>;
-}
-
 export interface PositionNode extends Node {
   x: number;
   y: number;
-  level: number;
   childCount: number;
 }
 
@@ -20,13 +15,16 @@ export interface Node {
   key: string;
   comment?: string;
   time: string;
-  childTime: string;
+
+  parent?: string;
+  child?: Array<string>;
+  descendant?: string;
 }
 
 export class NodeTree extends React.Component<NodeProps> {
   public render() {
     const { node } = this.props;
-    const { key, name, comment, time, x, y, level } = node;
+    const { key, name, comment, time, x, y } = node;
     return (
       <g
         key={node.key}

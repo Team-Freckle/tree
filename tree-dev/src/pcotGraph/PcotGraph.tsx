@@ -1,9 +1,9 @@
 import * as React from "react";
-import { NodeTree, RawNode, PositionNode } from "./Node";
+import { Node, NodeTree, PositionNode } from "./Node";
 import { Bridge } from "./Bridge";
 
 export interface PcotGraphProps {
-  tree: RawNode;
+  tree: Array<Node>;
 }
 export interface PcotGraphState {}
 
@@ -26,63 +26,115 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
     );
   }
 
-  private createBlueprint(data: RawNode, parent?: PositionNode) {
-    if (!parent) {
-      parent = {
-        key: "",
-        name: "",
-        time: "",
-        childTime: "",
-        x: 10,
-        y: 0,
-        level: 0,
-        childCount: 0,
-      };
-    }
-    const isFirst: Boolean = parent.childCount === 0;
-    const x: number = parent.x + 100 * parent.childCount;
-    const y: number = parent.y + 100 * (isFirst ? 1 : 0.5); // 서열 판별
-    const level: number = parent.level + 1;
+  private createRelation(data: Array<Node>) {
+    data = data.sort(
+      (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
+    );
 
-    let childCount = 0;
+    // 최 하위 후손 key 가져오기
+    data = data.map((child) => {
+      if (child.parent) {
+        const descendant = data.find(({ key }) => key === child.parent);
+        if (descendant) descendant.descendant = child.key;
+      } else {
+        child.descendant = child.key;
+      }
+      return child;
+    });
+    return data;
+  }
 
-    let node: PositionNode = {
-      key: data.key,
-      name: data.name,
-      comment: data.comment,
-      time: data.time,
-      childTime: data.childTime,
-      x: x,
-      y: y,
-      level: level,
-      childCount: childCount,
+  private createBlueprint(data: Array<Node>) {
+    data = this.createRelation(data);
+    const pos: PositionNode = {
+      key: data[0].key,
+      name: data[0].name,
+      comment: data[0].comment,
+      time: data[0].time,
+      x: 10,
+      y: 0,
+      childCount: 0,
+
+      child: [],
     };
 
-    const arr: Array<PositionNode> =
-      data.child && Array.isArray(data.child)
-        ? data.child
-            .sort(
-              (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
-            )
-            .map((children) => {
-              const result: Array<PositionNode> = this.createBlueprint(
-                children,
-                node
-              );
-              node.childCount++;
+    const queue: Array<PositionNode> = [pos];
+    let result: Array<PositionNode> = [];
+    let level: number = 0;
 
-              return result;
-            })
-            .flat()
-        : [];
+    while (queue.length > 0) {
+      const parentNode = queue.shift()!;
+      const childs = data.filter(({ parent }) => parent === parentNode.key);
+      console.log(parentNode.name + "'s child ");
+      console.log(childs);
 
-    console.log(arr);
-    return arr.concat(node);
+      if (Array.isArray(parentNode.child)) {
+        for (const child of childs) {
+          console.log(
+            child.name +
+              "(" +
+              child.key +
+              ")" +
+              " is " +
+              parentNode.name +
+              "(" +
+              parentNode.key +
+              ")'s child"
+          );
+          const x = parentNode.x + 30 * parentNode.childCount;
+          level++;
+          const y = 30 * level;
+          console.log(child.name + "'s level : " + level);
+
+          const childNode: PositionNode = {
+            key: child.key,
+            name: child.name,
+            comment: child.comment,
+            time: child.time,
+            x: x,
+            y: y,
+            childCount: 0,
+            parent: parentNode.key,
+            child: [],
+          };
+
+          parentNode.child.concat(child.key);
+
+          parentNode.childCount++;
+          queue.push(childNode);
+        }
+        result.push(parentNode);
+      }
+    }
+    return result;
   }
 
   private drawNode(data: Array<PositionNode>) {
+    const parentMap: Record<string, PositionNode> = {};
+    data.forEach((node) => {
+      parentMap[node.key] = node;
+    });
     return data.map((node) => {
-      return <NodeTree node={node} />;
+      const parent = parentMap[node.parent!];
+
+      if (!parent)
+        return (
+          <g>
+            <NodeTree node={node} />
+          </g>
+        );
+      console.log("bridging to " + node.name + " " + parent.name);
+      console.log("key : " + node.parent + " " + parent.key);
+
+      console.log(node.name + " 최하위 자손 : " + node.descendant);
+      const result = (
+        <g>
+          <NodeTree node={node} />
+          <Bridge parent={parent} child={node} />
+        </g>
+      );
+
+      return result;
     });
   }
 }
