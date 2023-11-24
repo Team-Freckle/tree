@@ -40,6 +40,16 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
 
         console.log(parent);
         if (parent) {
+          if (!parent.childExtraWidth) {
+            parent.childExtraWidth = new Map<string, number>();
+          }
+          if (child.childExtraWidth) {
+            const total = Array.from(child.childExtraWidth.values()).reduce(
+              (acc, value) => acc + value,
+              0
+            );
+            parent.childExtraWidth.set(child.key, total > 0 ? total : 1);
+          } else parent.childExtraWidth.set(child.key, 1);
           if (!child.descendant) {
             child.descendant = child.key;
           }
@@ -80,17 +90,15 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
       time: data[0].time,
       x: 10,
       y: 0,
-      childCount: 0,
 
       child: [],
+      childExtraWidth: data[0].childExtraWidth,
     };
-
-    console.log("timeLine");
-    console.log(data);
 
     let queue: Array<PositionNode> = [pos];
     let result: Array<PositionNode> = [];
     let level: number = 0;
+    let jump: number = 0;
 
     while (queue.length > 0) {
       const parentNode = queue.shift()!;
@@ -114,20 +122,13 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
           ).getTime()
       );
 
+      jump = 0;
       // eslint-disable-next-line no-loop-func
       const nextQueue = childs.map((child) => {
-        console.log(
-          child.name +
-            "(" +
-            child.key +
-            ")" +
-            " is " +
-            parentNode.name +
-            "(" +
-            parentNode.key +
-            ")'s child"
-        );
-        const x = parentNode.x + 30 * parentNode.childCount;
+        console.log("jump : " + jump);
+        const x = parentNode.x + 30 * jump;
+        jump = parentNode.childExtraWidth?.get(child.key)!;
+        parentNode.childExtraWidth?.delete(child.key);
 
         const childNode: PositionNode = {
           key: child.key,
@@ -136,28 +137,27 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
           time: child.time,
           x: x,
           y: 0,
-          childCount: 0,
           parent: parentNode.key,
+
           child: [],
+
+          childExtraWidth: child.childExtraWidth,
         };
 
         parentNode.child!.concat(child.key);
 
-        parentNode.childCount++;
         return childNode;
       });
       console.log(queue);
       queue = [...queue, ...nextQueue];
-      console.log(nextQueue);
-      console.log("before");
-      console.log(queue);
       queue = queue.sort(
         (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
       );
-      console.log(queue);
 
       result.push(parentNode);
     }
+    console.log("result");
+    console.log(result);
     return result;
   }
 

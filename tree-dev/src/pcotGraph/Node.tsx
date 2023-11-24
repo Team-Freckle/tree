@@ -7,7 +7,6 @@ export interface NodeProps {
 export interface PositionNode extends Node {
   x: number;
   y: number;
-  childCount: number;
 }
 
 export interface Node {
@@ -18,6 +17,7 @@ export interface Node {
 
   parent?: string;
   child?: Array<string>;
+  childExtraWidth?: Map<string, number>;
   descendant?: string;
 }
 
