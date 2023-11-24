@@ -27,20 +27,47 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
   }
 
   private createRelation(data: Array<Node>) {
+    console.log("time normal line");
+    console.log(data);
+    data = data.sort(
+      (a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()
+    );
+
+    // 최 하위 후손 key 가져오기
+    data.map((child) => {
+      if (child.parent) {
+        const parent = data.find(({ key }) => key === child.parent);
+
+        console.log(parent);
+        if (parent) {
+          if (!child.descendant) {
+            child.descendant = child.key;
+          }
+          if (parent.descendant) {
+            if (
+              new Date(
+                data.find(({ key }) => key === parent.descendant)!.time
+              ).getTime() -
+                new Date(
+                  data.find(({ key }) => key === child.descendant)!.time
+                ).getTime() <
+              0
+            ) {
+              parent.descendant = child.descendant;
+            }
+          } else {
+            parent.descendant = child.descendant;
+          }
+        }
+      }
+
+      return child;
+    });
+
     data = data.sort(
       (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
     );
 
-    // 최 하위 후손 key 가져오기
-    data = data.map((child) => {
-      if (child.parent) {
-        const descendant = data.find(({ key }) => key === child.parent);
-        if (descendant) descendant.descendant = child.key;
-      } else {
-        child.descendant = child.key;
-      }
-      return child;
-    });
     return data;
   }
 
@@ -58,53 +85,78 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
       child: [],
     };
 
-    const queue: Array<PositionNode> = [pos];
+    console.log("timeLine");
+    console.log(data);
+
+    let queue: Array<PositionNode> = [pos];
     let result: Array<PositionNode> = [];
     let level: number = 0;
 
     while (queue.length > 0) {
       const parentNode = queue.shift()!;
-      const childs = data.filter(({ parent }) => parent === parentNode.key);
+      console.log(parentNode.name + "'s level : " + level);
+      parentNode.y = 30 * level;
+      level++;
+      const childs: Array<Node> = data.filter(
+        ({ parent }) => parent === parentNode.key
+      );
+
       console.log(parentNode.name + "'s child ");
       console.log(childs);
 
-      if (Array.isArray(parentNode.child)) {
-        for (const child of childs) {
-          console.log(
-            child.name +
-              "(" +
-              child.key +
-              ")" +
-              " is " +
-              parentNode.name +
-              "(" +
-              parentNode.key +
-              ")'s child"
-          );
-          const x = parentNode.x + 30 * parentNode.childCount;
-          level++;
-          const y = 30 * level;
-          console.log(child.name + "'s level : " + level);
+      childs.sort(
+        (a, b) =>
+          new Date(
+            data.find(({ descendant }) => descendant === a.descendant)!.time
+          ).getTime() -
+          new Date(
+            data.find(({ descendant }) => descendant === b.descendant)!.time
+          ).getTime()
+      );
 
-          const childNode: PositionNode = {
-            key: child.key,
-            name: child.name,
-            comment: child.comment,
-            time: child.time,
-            x: x,
-            y: y,
-            childCount: 0,
-            parent: parentNode.key,
-            child: [],
-          };
+      // eslint-disable-next-line no-loop-func
+      const nextQueue = childs.map((child) => {
+        console.log(
+          child.name +
+            "(" +
+            child.key +
+            ")" +
+            " is " +
+            parentNode.name +
+            "(" +
+            parentNode.key +
+            ")'s child"
+        );
+        const x = parentNode.x + 30 * parentNode.childCount;
 
-          parentNode.child.concat(child.key);
+        const childNode: PositionNode = {
+          key: child.key,
+          name: child.name,
+          comment: child.comment,
+          time: child.time,
+          x: x,
+          y: 0,
+          childCount: 0,
+          parent: parentNode.key,
+          child: [],
+        };
 
-          parentNode.childCount++;
-          queue.push(childNode);
-        }
-        result.push(parentNode);
-      }
+        parentNode.child!.concat(child.key);
+
+        parentNode.childCount++;
+        return childNode;
+      });
+      console.log(queue);
+      queue = [...queue, ...nextQueue];
+      console.log(nextQueue);
+      console.log("before");
+      console.log(queue);
+      queue = queue.sort(
+        (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
+      );
+      console.log(queue);
+
+      result.push(parentNode);
     }
     return result;
   }
@@ -123,10 +175,6 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
             <NodeTree node={node} />
           </g>
         );
-      console.log("bridging to " + node.name + " " + parent.name);
-      console.log("key : " + node.parent + " " + parent.key);
-
-      console.log(node.name + " 최하위 자손 : " + node.descendant);
       const result = (
         <g>
           <NodeTree node={node} />
