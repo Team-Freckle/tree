@@ -2,6 +2,7 @@ import * as React from "react";
 
 export interface NodeProps {
   node: PositionNode;
+  color: string;
 }
 
 export interface PositionNode extends Node {
@@ -23,7 +24,7 @@ export interface Node {
 
 export class NodeTree extends React.Component<NodeProps> {
   public render() {
-    const { node } = this.props;
+    const { node, color } = this.props;
     const { key, name, comment, time, x, y } = node;
     return (
       <g
@@ -32,8 +33,8 @@ export class NodeTree extends React.Component<NodeProps> {
           console.log(node);
         }}
       >
-        <circle cx={x} cy={y} r="5" fill="#3e295e" />
-        <text x={x + 15} y={y + 3} textAnchor="left" fill="black">
+        <circle cx={x} cy={y} r="5" style={{ fill: color }} />
+        <text x={x + 15} y={y + 3} textAnchor="left" style={{ fill: color }}>
           {name}
         </text>
       </g>

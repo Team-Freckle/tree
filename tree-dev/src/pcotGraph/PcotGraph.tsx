@@ -4,6 +4,7 @@ import { Bridge } from "./Bridge";
 
 export interface PcotGraphProps {
   tree: Array<Node>;
+  color?: "red" | "blue" | "green" | string;
 }
 export interface PcotGraphState {}
 
@@ -98,10 +99,10 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
     let queue: Array<PositionNode> = [pos];
     let result: Array<PositionNode> = [];
     let level: number = 0;
-    let jump: number = 0;
 
     while (queue.length > 0) {
       const parentNode = queue.shift()!;
+      let jump = 0;
       console.log(parentNode.name + "'s level : " + level);
       parentNode.y = 30 * level;
       level++;
@@ -122,12 +123,11 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
           ).getTime()
       );
 
-      jump = 0;
       // eslint-disable-next-line no-loop-func
       const nextQueue = childs.map((child) => {
-        console.log("jump : " + jump);
         const x = parentNode.x + 30 * jump;
-        jump = parentNode.childExtraWidth?.get(child.key)!;
+
+        jump += parentNode.childExtraWidth?.get(child.key)!;
         parentNode.childExtraWidth?.delete(child.key);
 
         const childNode: PositionNode = {
@@ -161,7 +161,22 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
     return result;
   }
 
-  private drawNode(data: Array<PositionNode>) {
+  private drawNode(data: Array<PositionNode>, color?: string) {
+    if (!color) color = "defult";
+
+    if (color === "defult") {
+      color = "#316AE2";
+    } else if (color === "red") {
+      color = "#FF5656";
+    } else if (color === "green") {
+      color = "#31E238";
+    } else if (color === "blue") {
+      color = "#316AE2";
+    } else {
+      color = "#000000";
+    }
+    console.log(color);
+
     const parentMap: Record<string, PositionNode> = {};
     data.forEach((node) => {
       parentMap[node.key] = node;
@@ -172,13 +187,13 @@ export class PcotGraph extends React.Component<PcotGraphProps, PcotGraphState> {
       if (!parent)
         return (
           <g>
-            <NodeTree node={node} />
+            <NodeTree node={node} color={color!} />
           </g>
         );
       const result = (
         <g>
-          <NodeTree node={node} />
-          <Bridge parent={parent} child={node} />
+          <NodeTree node={node} color={color!} />
+          <Bridge parent={parent} child={node} color={color!} />
         </g>
       );
 
